@@ -4,9 +4,10 @@ import nibabel as nib
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
 
-class BratsDataset(Dataset):
+class BratsDataset3D(Dataset):
     def __init__(self, root_dir, transform=None):
         '''
+        Pytorch Dataset for full set of MRI data 
         Args:
             root_dir (string): Directory with folder containing training data
             transform (callable, optional): Optional transform to apply on a sample
@@ -29,6 +30,9 @@ class BratsDataset(Dataset):
                 - 't1'
                 - 't1ce'
                 - 't2'
+        Output:
+         - image: (240, 240, 155) MRI slices
+         - label: (240, 240, 155) Volumetric Segmentation labels
         '''
         # Raise error if type is seg
         if type == 'seg':
@@ -47,3 +51,24 @@ class BratsDataset(Dataset):
             sample = self.transform(sample)
 
         return image, label
+    
+class BratsDataset2D(Dataset):
+    def __init__(self, root_dir):
+        '''
+        Pytorch Dataset for single slice MRI images
+        Args:
+            root_dir (string): Directory with folder containing training data
+            transform (callable, optional): Optional transform to apply on a sample
+        '''
+        self.root_dir = root_dir
+        self.samples = None # FIXHERE should be file paths fro each individual image
+
+        def __len__(self):
+            return len(self.samples)
+        
+        def __getitem__(self):
+            ### FIX THIS
+            image = None
+            label = None
+            
+            return image, label
