@@ -3,7 +3,7 @@
 ## Goals
 Create a model to accurately segment a brain tumor from an MRI.
 - Experiment with varying Computer Vision Architectures, namely:
-    - UNet
+    - UNet (3D and 2D)
     - Vision Transformer
 - Create a generalizable system to takes in varying image resolution inputs, while retaining prediction quality.
 
