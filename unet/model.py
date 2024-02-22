@@ -4,7 +4,19 @@ from layers import EncoderBlock, DecoderBlock, EncoderUNet, DecoderUNet, Bottlen
 
 class GeneralUNet(nn.Module):
     '''
-    General class for UNet Structure
+    Generalized U-Net architecture supporting both 2D and 3D convolutions, designed for segmentation tasks.
+
+    Args:
+        in_channels (int): Number of channels in the input image.
+        out_channels (int): Number of channels in the output segmentation map.
+        conv_kernel_size (int or tuple): Size of the kernel for the convolutional layers.
+        pool_kernel_size (int or tuple): Size of the kernel for the pooling layers in the encoder.
+        up_kernel_size (int or tuple): Size of the kernel for the transposed convolutional layers in the decoder.
+        dropout (float, optional): Dropout rate used in bottleneck and decoder layers. Default: None (no dropout).
+        conv_stride (int or tuple): Stride for the convolutional operations.
+        conv_padding (int or tuple): Padding for the convolutional operations.
+        conv3d (bool): Flag indicating whether to use 3D convolutions (True) or 2D convolutions (False).
+        size (int): Number of layers in the encoder/decoder.
     '''
     def __init__(self, in_channels, out_channels, conv_kernel_size, pool_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
         super(GeneralUNet, self).__init__()

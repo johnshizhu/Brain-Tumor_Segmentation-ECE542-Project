@@ -216,6 +216,18 @@ class DecoderUNet(nn.module):
         return x
     
 class Bottleneck(nn.Module):
+    '''
+    Bottleneck layer used in U-Net architecture for processing high-level features. This layer can operate in both 2D and 3D modes.
+
+    Args:
+        in_channels (int): Number of channels in the input feature map.
+        out_channels (int): Number of channels in the output feature map.
+        kernel_size (int or tuple): Size of the kernel in the convolutional layers.
+        stride (int or tuple): Stride for the convolutional operations.
+        padding (int or tuple): Padding for the convolutional operations.
+        dropout (float, optional): Dropout rate; if specified, dropout is applied after batch normalization. Default: None (no dropout).
+        conv3d (bool): Flag indicating whether to use 3D convolutions (True) or 2D convolutions (False).
+    '''
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dropout, conv3d):
         super(Bottleneck, self).__init__()
         if conv3d:
