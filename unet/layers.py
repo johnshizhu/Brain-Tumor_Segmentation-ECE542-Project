@@ -54,6 +54,7 @@ def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.1, stri
 class ConvSingle(nn.Sequential):
     '''
     Single Convolutional Layer
+    conv --> batch norm --> ReLU --> dropout(optional)
     Args:
      - in_channels: 
      - out_channels: 
@@ -102,9 +103,68 @@ class ConvDouble(nn.Sequential):
         self.add_module("conv_single1", ConvSingle(in_channels, mid_channels, kernel_size, dropout, stride, padding, conv3d))
         self.add_module("conv_single2", ConvSingle(mid_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
 
+class EncoderBlock(nn.module):
+    '''
+    Encoder Block consists of 
+    Double Conv Layer --> ReLU Activation function --> Max Pool
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        conv_kernel_size (int or tuple): Size of the convolutional kernel.
+        pool_kernel_size (int or tuple): Size of the pooling kernel.
+        dropout (float): Dropout probability.
+        conv_stride (int or tuple): Stride of the convolution.
+        conv_padding (int or tuple): Padding applied to the convolution.
+        conv3d (bool): If True, 3D convolution and pooling are applied. If False, 2D convolution and pooling are applied.    
+    '''
+    def __init__(self, in_channels, out_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d):
+        super(EncoderBlock, self).__init__()
+        self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, True, dropout, conv_stride, conv_padding, conv3d)
+        if conv3d:
+            self.maxPool = nn.MaxPool3d(pool_kernel_size)
+        else:
+            self.maxPool = nn.MaxPool2d(pool_kernel_size)
+        # Skip Connection
+        self.skip_features = None
+
+    def forward(self, x):
+        post_conv_features = self.doubleConv(x)
+        # Skip Connection
+        self.skip_features = post_conv_features
+        post_pool_features = self.maxPool(post_conv_features)
+        return post_pool_features
+
+class DecoderBlock(nn.module):
+    '''
+    Decoder Block consists of
+    Upscaling --> Double Conv Layer
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        conv_kernel_size (int or tuple): Size of the convolutional kernel for the double convolution.
+        up_kernel_size (int or tuple): Size of the transposed convolutional kernel for upscaling.
+        dropout (float): Dropout probability.
+        conv_stride (int or tuple): Stride of the convolution for the double convolution.
+        conv_padding (int or tuple): Padding applied to the convolution for the double convolution.
+        conv3d (bool): If True, 3D convolution and transpose convolution are applied. If False, 2D convolution and transpose convolution are applied.
+    '''
+    def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
+        super(DecoderBlock, self).__iniit__()
+        self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
+        if conv3d:
+            self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size)
+        else:
+            self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size)
+
+    def forward(self, x):
+        post_ups_features = self.upScale(x)
+        post_conv_features = self.doubleConv(post_ups_features)
+        return post_conv_features
+
 class EncoderUNet(nn.module):
     '''
-    
+    UNet Encoder made of Encoder blocks
     '''
     def __init__(self, args):
         super(EncoderUNet, self).__init__()
@@ -114,6 +174,9 @@ class EncoderUNet(nn.module):
         return x
 
 class DecoderUNet(nn.module):
+    '''
+    UNet Decoder made of Decoder blocks
+    '''
     def __init__(self, args):
         super(DecoderUNet, self).__init__()
 
