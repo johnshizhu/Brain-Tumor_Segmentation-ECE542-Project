@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.1, stride=1, padding=0, conv3d=True):
+def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stride=1, padding=0, conv3d=True):
     '''
     Adds a convolutional block to a neural network sequence based on a given configuration.
     
@@ -66,10 +66,10 @@ class ConvSingle(nn.Sequential):
         super(ConvSingle, self).__init__()
         if dropout:
             for module in addBlock('cbrd', in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d):
-                self.add_module(module)
+                self.add_module('conv_with_dropout', module)
         else:
             for module in addBlock('cbr', in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d):
-                self.add_module(module)
+                self.add_module('conv_no_dropout', module)
 
 class ConvDouble(nn.Sequential):
     '''
@@ -98,7 +98,7 @@ class ConvDouble(nn.Sequential):
         self.add_module("conv_single1", ConvSingle(in_channels, mid_channels, kernel_size, dropout, stride, padding, conv3d))
         self.add_module("conv_single2", ConvSingle(mid_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
 
-class EncoderBlock(nn.module):
+class EncoderBlock(nn.Module):
     '''
     Encoder Block consisting of a double convolutional layer followed by a Max Pool operation. 
     This block also saves its output before pooling for use as a skip connection in a corresponding Decoder Block.
@@ -130,7 +130,7 @@ class EncoderBlock(nn.module):
         post_pool_features = self.maxPool(post_conv_features)
         return post_pool_features
 
-class DecoderBlock(nn.module):
+class DecoderBlock(nn.Module):
     '''
     Decoder Block consisting of an upscaling operation followed by a double convolutional layer. 
     This block combines upsampled features with features from a corresponding Encoder Block via a skip connection.
@@ -146,7 +146,7 @@ class DecoderBlock(nn.module):
         conv3d (bool): Indicates whether to use 3D transposed convolutions and convolutions (True) or 2D (False).
     '''
     def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
-        super(DecoderBlock, self).__iniit__()
+        super(DecoderBlock, self).__init__()
         self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
         if conv3d:
             self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size)
@@ -159,7 +159,7 @@ class DecoderBlock(nn.module):
         post_conv_features = self.doubleConv(cat_features)
         return post_conv_features
 
-class EncoderUNet(nn.module):
+class EncoderUNet(nn.Module):
     '''
     UNet Encoder composed of a series of Encoder Blocks. Each block applies a double convolution followed by max pooling,
     and stores the pre-pooled feature maps for use as skip connections in the decoder.
@@ -188,7 +188,7 @@ class EncoderUNet(nn.module):
             skip_connections.append(block.skip_features)
         return x, skip_connections
 
-class DecoderUNet(nn.module):
+class DecoderUNet(nn.Module):
     '''
     UNet Decoder composed of a series of Decoder Blocks. Each block upscales the feature map and merges it with a corresponding
     feature map from the Encoder through skip connections, followed by a double convolution.
@@ -228,7 +228,7 @@ class Bottleneck(nn.Module):
         dropout (float, optional): Dropout rate; if specified, dropout is applied after batch normalization. Default: None (no dropout).
         conv3d (bool): Flag indicating whether to use 3D convolutions (True) or 2D convolutions (False).
     '''
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dropout, conv3d):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dropout=0, conv3d=True):
         super(Bottleneck, self).__init__()
         if conv3d:
             self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
@@ -236,16 +236,14 @@ class Bottleneck(nn.Module):
             self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size, stride=stride, padding=padding)
             self.relu2 = nn.ReLU(inplace=True)
             self.bn    = nn.BatchNorm3d(out_channels)
-            if dropout:
-                self.dropout = nn.Dropout3d(p=dropout)
+            self.dropout = nn.Dropout3d(p=dropout)
         else:
             self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
             self.relu1 = nn.ReLU(inplace=True)
             self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride=stride, padding=padding)
             self.relu2 = nn.ReLU(inplace=True)
-            self.bn    = nn.BatchNorm3d(out_channels)
-            if dropout:
-                self.dropout = nn.Dropout2d(p=dropout)
+            self.bn    = nn.BatchNorm2d(out_channels)
+            self.dropout = nn.Dropout2d(p=dropout)
 
     def forward(self, x):
         x = self.conv1(x)
