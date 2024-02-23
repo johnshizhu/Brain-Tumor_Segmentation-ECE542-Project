@@ -43,7 +43,7 @@ def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stri
         # Add Dropout
         elif i == "d":
             if conv3d:
-                modules.append(nn.Dropout2d(p=dropout))
+                modules.append(nn.Dropout3d(p=dropout))
             else:
                 modules.append(nn.Dropout2d(p=dropout))
     return modules
@@ -124,10 +124,14 @@ class EncoderBlock(nn.Module):
         self.skip_features = None
 
     def forward(self, x):
+        print(f'Encoder, input shape: {x.shape}')
         post_conv_features = self.doubleConv(x)
         # Skip Connection
         self.skip_features = post_conv_features
+        print(f'Encoder, post conv shape: {post_conv_features.shape}')
         post_pool_features = self.maxPool(post_conv_features)
+        print(f'Encoder, post pool shape: {post_pool_features.shape}')
+        print(f'')
         return post_pool_features
 
 class DecoderBlock(nn.Module):
@@ -149,12 +153,15 @@ class DecoderBlock(nn.Module):
         super(DecoderBlock, self).__init__()
         self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
         if conv3d:
-            self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size)
+            self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
         else:
-            self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size)
+            self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
 
     def forward(self, x, skip_connection):
+        print(f'pre_up_shape: {x.shape}')
         post_ups_features = self.upScale(x)
+        print(f'post_ups_features.shape is: {post_ups_features.shape}')
+        print(f'skip_connection.shape is: {skip_connection.shape}')
         cat_features = torch.cat((post_ups_features, skip_connection), dim=1)
         post_conv_features = self.doubleConv(cat_features)
         return post_conv_features
