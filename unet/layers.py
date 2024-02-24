@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stride=1, padding=0, conv3d=True):
     '''
@@ -152,18 +152,28 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
         super(DecoderBlock, self).__init__()
         self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
+        self.reduce_channels = nn.Conv3d(in_channels=2, out_channels=1, kernel_size=1, stride=1, padding=0)
+
         if conv3d:
             self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
         else:
             self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
 
     def forward(self, x, skip_connection):
+        print(f'skip_connection.shape is: {skip_connection.shape}')
         print(f'pre_up_shape: {x.shape}')
         post_ups_features = self.upScale(x)
+        diff = skip_connection.size(-1) - post_ups_features.size(-1)
+        post_ups_features = F.pad(post_ups_features, (0, diff), "constant", 0)
         print(f'post_ups_features.shape is: {post_ups_features.shape}')
-        print(f'skip_connection.shape is: {skip_connection.shape}')
+
         cat_features = torch.cat((post_ups_features, skip_connection), dim=1)
-        post_conv_features = self.doubleConv(cat_features)
+        cat_reduce = self.reduce_channels(cat_features)
+        print(f'cat_reduce.shape is: {cat_reduce.shape}')
+
+        post_conv_features = self.doubleConv(cat_reduce)
+        print(f'post_conv_features.shape is: {post_conv_features.shape}\n')
+
         return post_conv_features
 
 class EncoderUNet(nn.Module):
