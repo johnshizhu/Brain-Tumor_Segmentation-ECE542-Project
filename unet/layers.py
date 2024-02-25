@@ -152,6 +152,8 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
         super(DecoderBlock, self).__init__()
         self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
+        
+        # 1x1x1 kernel conv3d to reduce channels
         self.reduce_channels = nn.Conv3d(in_channels=2, out_channels=1, kernel_size=1, stride=1, padding=0)
 
         if conv3d:
@@ -163,6 +165,8 @@ class DecoderBlock(nn.Module):
         print(f'skip_connection.shape is: {skip_connection.shape}')
         print(f'pre_up_shape: {x.shape}')
         post_ups_features = self.upScale(x)
+
+        # padding decoder after upscaling
         diff = skip_connection.size(-1) - post_ups_features.size(-1)
         post_ups_features = F.pad(post_ups_features, (0, diff), "constant", 0)
         print(f'post_ups_features.shape is: {post_ups_features.shape}')
