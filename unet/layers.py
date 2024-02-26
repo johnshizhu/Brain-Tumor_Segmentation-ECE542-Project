@@ -133,10 +133,12 @@ class EncoderBlock(nn.Module):
         self.skip_features = None
 
     def forward(self, x):
+        print(f'Encoder Block Forward')
         post_conv_features = self.doubleConv(x)
         # Skip Connection
         self.skip_features = post_conv_features
         post_pool_features = self.maxPool(post_conv_features)
+        print(f'shape is: {post_pool_features.shape}')
         return post_pool_features
 
 class DecoderBlock(nn.Module):
@@ -156,15 +158,17 @@ class DecoderBlock(nn.Module):
     '''
     def __init__(self, in_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
         super(DecoderBlock, self).__init__()
+        print(f'Decoder: adding convDouble')
         out_channels = int(in_channels // 2)
         self.doubleConv = ConvDouble(in_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
-        
+        print(f'')
         if conv3d:
             self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
         else:
             self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
 
     def forward(self, x, skip_connection):
+        print(f'Decoder Block Forward')
         post_ups_features = self.upScale(x)
 
         # padding decoder after upscaling
@@ -207,6 +211,11 @@ class EncoderUNet(nn.Module):
         for block in self.blocks:
             x = block(x)
             skip_connections.append(block.skip_features)
+        print(f'')
+        print(f'Completed Encoder Block Forward Prop')
+        print(f'x.shape: {x.shape}')
+        for i in skip_connections:
+            print(f'skip_connection.shape is: {i.shape}')
         return x, skip_connections
 
 class DecoderUNet(nn.Module):
@@ -272,6 +281,7 @@ class Bottleneck(nn.Module):
         print(f'')
 
     def forward(self, x):
+        print(f'Bottleneck Forward')
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.conv2(x)

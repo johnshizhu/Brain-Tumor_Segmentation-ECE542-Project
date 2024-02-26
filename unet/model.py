@@ -27,8 +27,10 @@ class GeneralUNet(nn.Module):
             self.last_conv = nn.Conv3d(64, 2, kernel_size=1, stride=1, padding=0)
         else:
             self.last_conv = nn.Conv2d(64, 2, kernel_size=1, stride=1, padding=0)
+        print(f'added last 1x1x1 conv layer')
 
     def forward(self, x):
+        print(f'input features shape: {x.shape}')
         encoder_features, skip_connections = self.encoder_series(x)
         bottle_features = self.bottleneck(encoder_features)
         output_features = self.decoder_series(bottle_features, skip_connections)
