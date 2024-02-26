@@ -49,7 +49,7 @@ def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stri
                 modules.append(nn.Dropout2d(p=dropout))
     return modules
 
-class ConvSingle(nn.Sequential):
+class ConvSingle(nn.Module):
     '''
     Single Convolutional Layer, encapsulating a standard set of layers: Convolution, Batch Normalization,
     ReLU activation, and optionally Dropout, based on the given architecture sequence.
@@ -65,14 +65,21 @@ class ConvSingle(nn.Sequential):
     '''
     def __init__(self, in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d):
         super(ConvSingle, self).__init__()
+        self.layer = nn.Sequential()
         if dropout:
             for module in addBlock('cbrd', in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d):
-                self.add_module('conv_with_dropout', module)
+                self.layer.append(module)
         else:
             for module in addBlock('cbr', in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d):
-                self.add_module('conv_no_dropout', module)
+                self.layer.append(module)
 
-class ConvDouble(nn.Sequential):
+    def forward(self, x):
+        print(f'single conv, input shape is: {x.shape}')
+        x = self.layer(x)
+        print(f'output shape is: {x.shape}')
+        return x
+
+class ConvDouble(nn.Module):
     '''
     Double Convolutional Layer module, comprising two sets of convolutional layers each followed by batch normalization
     and ReLU activation. Optionally, a dropout layer can be included after each ReLU activation.
@@ -94,7 +101,6 @@ class ConvDouble(nn.Sequential):
     '''
     def __init__(self, in_channels, kernel_size, endec, dropout, stride, padding, conv3d, first=False):
         super(ConvDouble, self).__init__()
-
         if endec:
             if first:
                 out_channels = 64
@@ -103,8 +109,14 @@ class ConvDouble(nn.Sequential):
         else:                
             out_channels = int(in_channels // 2)
         print(f'Adding Double Conv layer, in: {in_channels}, out: {out_channels}')
-        self.add_module("conv_single1", ConvSingle(in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
-        self.add_module("conv_single2", ConvSingle(out_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
+        self.doubleLayer = nn.Sequential(
+            ConvSingle(in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d),
+            ConvSingle(out_channels, out_channels, kernel_size, dropout, stride, padding, conv3d)
+        )
+
+    def forward(self, x):
+        x = self.doubleLayer(x)
+        return x
 
 class EncoderBlock(nn.Module):
     '''
