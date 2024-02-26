@@ -25,6 +25,7 @@ def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stri
         # Add Convolution layer (3D or 2D)
         if i == "c":
             if conv3d:
+                print(f'adding conv3d layer with in_channels: {in_channels}, out_channels: {out_channels}')
                 modules.append(nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding))
             else:
                 modules.append(nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding))
@@ -135,6 +136,7 @@ class EncoderBlock(nn.Module):
     def forward(self, x):
         print(f'Encoder Block Forward')
         post_conv_features = self.doubleConv(x)
+        print(f'post_conv_features.shape: {post_conv_features.shape}')
         # Skip Connection
         self.skip_features = post_conv_features
         post_pool_features = self.maxPool(post_conv_features)
