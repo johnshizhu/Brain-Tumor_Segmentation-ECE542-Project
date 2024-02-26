@@ -18,11 +18,15 @@ class GeneralUNet(nn.Module):
         conv3d (bool): Flag indicating whether to use 3D convolutions (True) or 2D convolutions (False).
         size (int): Number of layers in the encoder/decoder.
     '''
-    def __init__(self, in_channels, out_channels, conv_kernel_size, pool_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
+    def __init__(self, in_channels, conv_kernel_size, pool_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
         super(GeneralUNet, self).__init__()
-        self.encoder_series = EncoderUNet(in_channels, out_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, size)
-        self.bottleneck     = Bottleneck(out_channels, out_channels, conv_kernel_size, conv_stride, conv_padding, dropout, conv3d)
-        self.decoder_series = DecoderUNet(out_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size)
+        self.encoder_series = EncoderUNet(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, size)
+        self.bottleneck     = Bottleneck(64 * (2 ** (size-1)), conv_kernel_size, conv_stride, conv_padding, dropout, conv3d)
+        self.decoder_series = DecoderUNet(64 * (2 ** size), conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size)
+        if conv3d:
+            self.last_conv = nn.Conv3d(64, 2, kernel_size=1, stride=1, padding=0)
+        else:
+            self.last_conv = nn.Conv2d(64, 2, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
         encoder_features, skip_connections = self.encoder_series(x)

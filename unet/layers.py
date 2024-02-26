@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stride=1, padding=0, conv3d=True):
     '''
-    Adds a convolutional block to a neural network sequence based on a given configuration.
+    Adds a block to a neural network sequence based on a given configuration.
     
     Args:
         sequence (str): A string sequence consisting of 'c' (convolution), 'b' (batch normalization), 
@@ -50,7 +50,7 @@ def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stri
 
 class ConvSingle(nn.Sequential):
     '''
-    Single Convolutional Layer module, encapsulating a standard set of layers: Convolution, Batch Normalization,
+    Single Convolutional Layer, encapsulating a standard set of layers: Convolution, Batch Normalization,
     ReLU activation, and optionally Dropout, based on the given architecture sequence.
     
     Args:
@@ -76,6 +76,9 @@ class ConvDouble(nn.Sequential):
     Double Convolutional Layer module, comprising two sets of convolutional layers each followed by batch normalization
     and ReLU activation. Optionally, a dropout layer can be included after each ReLU activation.
     
+    conv1 --> channel inc. or dec. based on encoder or not
+    conv2 --> channel steady
+
     Args:
         in_channels (int): Number of input channels to the first convolutional layer.
         out_channels (int): Number of output channels from the second convolutional layer.
@@ -86,17 +89,21 @@ class ConvDouble(nn.Sequential):
         stride (int or tuple): Stride for the convolutional layers.
         padding (int or tuple): Padding for the convolutional layers.
         conv3d (bool): Indicates whether to use 3D convolutions (True) or 2D convolutions (False).
+        first_enc (bool): True --> first encoder block, channel increase to 64, False --> Not first encoder block
     '''
-    def __init__(self, in_channels, out_channels, kernel_size, endec, dropout, stride, padding, conv3d):
+    def __init__(self, in_channels, kernel_size, endec, dropout, stride, padding, conv3d, first=False):
         super(ConvDouble, self).__init__()
 
         if endec:
-            mid_channels = out_channels
-        else:
-            mid_channels = in_channels
-
-        self.add_module("conv_single1", ConvSingle(in_channels, mid_channels, kernel_size, dropout, stride, padding, conv3d))
-        self.add_module("conv_single2", ConvSingle(mid_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
+            if first:
+                out_channels = 64
+            else:
+                out_channels = in_channels * 2
+        else:                
+            out_channels = int(in_channels // 2)
+        print(f'Adding Double Conv layer, in: {in_channels}, out: {out_channels}')
+        self.add_module("conv_single1", ConvSingle(in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
+        self.add_module("conv_single2", ConvSingle(out_channels, out_channels, kernel_size, dropout, stride, padding, conv3d))
 
 class EncoderBlock(nn.Module):
     '''
@@ -113,9 +120,11 @@ class EncoderBlock(nn.Module):
         conv_padding (int or tuple): Padding for the convolutional layers.
         conv3d (bool): Indicates whether to use 3D convolutions and pooling (True) or 2D (False).
     '''
-    def __init__(self, in_channels, out_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d):
+    def __init__(self, in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, first):
         super(EncoderBlock, self).__init__()
-        self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, True, dropout, conv_stride, conv_padding, conv3d)
+        print(f'Encoder: adding convDouble')
+        self.doubleConv = ConvDouble(in_channels, conv_kernel_size, True, dropout, conv_stride, conv_padding, conv3d, first=first)
+        print(f'')
         if conv3d:
             self.maxPool = nn.MaxPool3d(pool_kernel_size)
         else:
@@ -124,14 +133,10 @@ class EncoderBlock(nn.Module):
         self.skip_features = None
 
     def forward(self, x):
-        print(f'Encoder, input shape: {x.shape}')
         post_conv_features = self.doubleConv(x)
         # Skip Connection
         self.skip_features = post_conv_features
-        print(f'Encoder, post conv shape: {post_conv_features.shape}')
         post_pool_features = self.maxPool(post_conv_features)
-        print(f'Encoder, post pool shape: {post_pool_features.shape}')
-        print(f'')
         return post_pool_features
 
 class DecoderBlock(nn.Module):
@@ -149,34 +154,26 @@ class DecoderBlock(nn.Module):
         conv_padding (int or tuple): Padding for the convolutional layers.
         conv3d (bool): Indicates whether to use 3D transposed convolutions and convolutions (True) or 2D (False).
     '''
-    def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
+    def __init__(self, in_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d):
         super(DecoderBlock, self).__init__()
-        self.doubleConv = ConvDouble(in_channels, out_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
+        out_channels = int(in_channels // 2)
+        self.doubleConv = ConvDouble(in_channels, conv_kernel_size, False, dropout, conv_stride, conv_padding, conv3d)
         
-        # 1x1x1 kernel conv3d to reduce channels
-        self.reduce_channels = nn.Conv3d(in_channels=2, out_channels=1, kernel_size=1, stride=1, padding=0)
-
         if conv3d:
             self.upScale = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
         else:
             self.upScale = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=up_kernel_size, stride=2)
 
     def forward(self, x, skip_connection):
-        print(f'skip_connection.shape is: {skip_connection.shape}')
-        print(f'pre_up_shape: {x.shape}')
         post_ups_features = self.upScale(x)
 
         # padding decoder after upscaling
         diff = skip_connection.size(-1) - post_ups_features.size(-1)
         post_ups_features = F.pad(post_ups_features, (0, diff), "constant", 0)
-        print(f'post_ups_features.shape is: {post_ups_features.shape}')
 
         cat_features = torch.cat((post_ups_features, skip_connection), dim=1)
-        cat_reduce = self.reduce_channels(cat_features)
-        print(f'cat_reduce.shape is: {cat_reduce.shape}')
 
-        post_conv_features = self.doubleConv(cat_reduce)
-        print(f'post_conv_features.shape is: {post_conv_features.shape}\n')
+        post_conv_features = self.doubleConv(cat_features)
 
         return post_conv_features
 
@@ -196,11 +193,14 @@ class EncoderUNet(nn.Module):
         conv3d (bool): Flag indicating whether the encoder uses 3D convolution (True) or 2D (False).
         size (int): Number of encoder blocks in the UNet.
     '''
-    def __init__(self, in_channels, out_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
+    def __init__(self, in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
         super(EncoderUNet, self).__init__()
         self.blocks = nn.ModuleList()
-        for i in range(size):
-            self.blocks.append(EncoderBlock(in_channels, out_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d))
+        self.blocks.append(EncoderBlock(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, first=True))
+        in_channels = 64
+        for i in range(size-1):
+            self.blocks.append(EncoderBlock(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, first=False))
+            in_channels *= 2
 
     def forward(self, x):
         skip_connections = []
@@ -225,11 +225,12 @@ class DecoderUNet(nn.Module):
         conv3d (bool): Flag indicating whether the decoder uses 3D convolution (True) or 2D (False).
         size (int): Number of decoder blocks in the UNet.
     '''
-    def __init__(self, in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
+    def __init__(self, in_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size):
         super(DecoderUNet, self).__init__()
         self.blocks = nn.ModuleList()
         for i in range(size):
-            self.blocks.append(DecoderBlock(in_channels, out_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d))
+            self.blocks.append(DecoderBlock(in_channels, conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d))
+            in_channels = int(in_channels // 2)
 
     def forward(self, x, skip_connections):
         for block, skip_connection in zip(self.blocks, reversed(skip_connections)):
@@ -249,8 +250,9 @@ class Bottleneck(nn.Module):
         dropout (float, optional): Dropout rate; if specified, dropout is applied after batch normalization. Default: None (no dropout).
         conv3d (bool): Flag indicating whether to use 3D convolutions (True) or 2D convolutions (False).
     '''
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dropout=0, conv3d=True):
+    def __init__(self, in_channels, kernel_size, stride, padding, dropout=0, conv3d=True):
         super(Bottleneck, self).__init__()
+        out_channels = in_channels * 2
         if conv3d:
             self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
             self.relu1 = nn.ReLU(inplace=True)
@@ -265,6 +267,9 @@ class Bottleneck(nn.Module):
             self.relu2 = nn.ReLU(inplace=True)
             self.bn    = nn.BatchNorm2d(out_channels)
             self.dropout = nn.Dropout2d(p=dropout)
+
+        print(f'Bottle neck appended, in: {in_channels}, out: {out_channels}')
+        print(f'')
 
     def forward(self, x):
         x = self.conv1(x)
