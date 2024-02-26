@@ -103,7 +103,7 @@ class ConvDouble(nn.Module):
         super(ConvDouble, self).__init__()
         if endec:
             if first:
-                out_channels = 64
+                out_channels = 4
             else:
                 out_channels = in_channels * 2
         else:                
@@ -215,7 +215,7 @@ class EncoderUNet(nn.Module):
         super(EncoderUNet, self).__init__()
         self.blocks = nn.ModuleList()
         self.blocks.append(EncoderBlock(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, first=True))
-        in_channels = 64
+        in_channels = 4
         for i in range(size-1):
             self.blocks.append(EncoderBlock(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, first=False))
             in_channels *= 2
