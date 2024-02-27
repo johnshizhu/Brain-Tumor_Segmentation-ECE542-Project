@@ -20,28 +20,19 @@ class GeneralUNet(nn.Module):
     '''
     def __init__(self, in_channels, conv_kernel_size, pool_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size, complex):
         super(GeneralUNet, self).__init__()
-        print(f'Appending encoder_series')
         self.encoder_series = EncoderUNet(in_channels, conv_kernel_size, pool_kernel_size, dropout, conv_stride, conv_padding, conv3d, size, complex)
-        print(f'Appending bottleneck')
         self.bottleneck     = Bottleneck(complex * (2 ** (size-1)), conv_kernel_size, conv_stride, conv_padding, dropout, conv3d)
-        print(f'Appending decoder_series')
         self.decoder_series = DecoderUNet(complex * (2 ** (size)), conv_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, conv3d, size, complex)
-        print(f'Appending last Conv')
         if conv3d:
             self.last_conv = nn.Conv3d(in_channels=complex, out_channels=1, kernel_size=1, stride=1, padding=0)
         else:
             self.last_conv = nn.Conv2d(in_channels=complex, out_channels=1, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
-        print(f'input features shape: {x.shape}')
         encoder_features, skip_connections = self.encoder_series(x)
-        print(f'encoder_features.shape: {encoder_features.shape}')
         bottle_features = self.bottleneck(encoder_features)
-        print(f'bottle_features.shape: {bottle_features.shape}')
         decoder_features = self.decoder_series(bottle_features, skip_connections)
-        print(f'deocder_features.shape is: {decoder_features.shape}')
         output_features = self.last_conv(decoder_features)
-        print(f'output_features.shape is: {output_features.shape}')
         return output_features
 
 class UNet3D(GeneralUNet):

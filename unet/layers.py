@@ -105,7 +105,6 @@ class ConvDouble(nn.Module):
                 out_channels = in_channels * 2
         else:                
             out_channels = int(in_channels // 2)
-        print(f'Conv Block in: {in_channels}, out: {out_channels}')
         self.doubleLayer = nn.Sequential(
             ConvSingle(in_channels, out_channels, kernel_size, dropout, stride, padding, conv3d),
             ConvSingle(out_channels, out_channels, kernel_size, dropout, stride, padding, conv3d)
@@ -141,12 +140,10 @@ class EncoderBlock(nn.Module):
         self.skip_features = None
 
     def forward(self, x):
-        print(f'Encoder Block input shape: {x.shape}')
         post_conv_features = self.doubleConv(x)
         # Skip Connection
         self.skip_features = post_conv_features
         post_pool_features = self.maxPool(post_conv_features)
-        print(f'Output shape: {post_pool_features.shape}')
         return post_pool_features
 
 class DecoderBlock(nn.Module):
@@ -242,8 +239,6 @@ class DecoderUNet(nn.Module):
             in_channels = int(in_channels // 2)
 
     def forward(self, x, skip_connections):
-        print(f'')
-        print(f'Decoder input shape is: {x.shape}')
         for block, skip_connection in zip(self.blocks, reversed(skip_connections)):
             x = block(x, skip_connection)
         return x
@@ -265,7 +260,6 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         out_channels = in_channels * 2
         if conv3d:
-            print(f'Conv Block in: {in_channels}, out: {out_channels}')
             self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
             self.relu1 = nn.ReLU(inplace=True)
             self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size, stride=stride, padding=padding)
