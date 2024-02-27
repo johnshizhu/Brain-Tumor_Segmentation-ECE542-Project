@@ -1,5 +1,7 @@
 # Brain Tumor Segmentation ECE542-Project
 
+This project is in progress
+
 ## Goals
 Create a model to accurately segment a brain tumor from an MRI.
 - Experiment with varying Computer Vision Architectures, namely:
