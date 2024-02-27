@@ -41,17 +41,30 @@ class BratsDataset3D(Dataset):
         
         # Construct file paths for sample
         scan_folder = self.samples[idx]
-        image_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}/BraTS20_Training_{idx+1:03d}_{type}.nii')
-        seg_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}/BraTS20_Training_{idx+1:03d}_seg.nii')
+        image_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_{type}.nii')
+        seg_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_seg.nii')
 
         # Load data
         image = nib.load(image_path).get_fdata()
         label = nib.load(seg_path).get_fdata()
 
+        image_tensor = torch.tensor(image).float()
+        label_tensor = torch.tensor(label).float()
+
+        # normalize image information
+        image_tensor = image_tensor / image_tensor.max()
+        
+        # Correct label information
+        label_tensor[label_tensor == 2] = 0
+        label_tensor[label_tensor == 4] = 1
+
         if self.transform:
             sample = self.transform(sample)
 
-        return image, label
+        image_tensor = image_tensor.unsqueeze(0)
+        label_tensor = label_tensor.unsqueeze(0)
+
+        return image_tensor.float(), label_tensor.float()
     
     def modify_seg_labels(self):
         for subdir, dirs, files in os.walk(self.root_dir):
