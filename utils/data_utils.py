@@ -1,6 +1,7 @@
 import os
 import torch
 import nibabel as nib
+import numpy as np
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
 
@@ -40,8 +41,8 @@ class BratsDataset3D(Dataset):
         
         # Construct file paths for sample
         scan_folder = self.samples[idx]
-        image_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_{type}.nii')
-        seg_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_seg.nii')
+        image_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}/BraTS20_Training_{idx+1:03d}_{type}.nii')
+        seg_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}/BraTS20_Training_{idx+1:03d}_seg.nii')
 
         # Load data
         image = nib.load(image_path).get_fdata()
@@ -51,6 +52,19 @@ class BratsDataset3D(Dataset):
             sample = self.transform(sample)
 
         return image, label
+    
+    def modify_seg_labels(self):
+        for subdir, dirs, files in os.walk(self.root_dir):
+            for file in files:
+                if file.endswith("_seg.nii"):
+                    file_path = os.path.join(subdir, file)
+                    seg_img = nib.load(file_path)
+                    seg_data = seg_img.get_fdata()
+                    
+                    modified_seg_data = np.where((seg_data == 1) | (seg_data == 4), 1, 0)
+                    mod_seg_path = file_path.replace("_seg.nii", "_seg_mod.nii")
+                    modified_seg_img = nib.Nifti1Image(modified_seg_data, seg_img.affine, seg_img.header)
+                    nib.save(modified_seg_img, mod_seg_path)
     
 class BratsDataset2D(Dataset):
     def __init__(self, root_dir):
