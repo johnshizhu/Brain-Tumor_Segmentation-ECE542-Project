@@ -21,19 +21,14 @@ class BratsDataset3D(Dataset):
     def __len__(self):
         return len(self.samples)
     
-    def __getitem__(self, idx, type='flair'):
+    def __getitem__(self, idx):
         '''
         Returns a list containing an data point (MRI scan) and its corresponding label (segmentation)
         Args:
             idx     (int): The index valuye
-            type    (string): The file type
-                - 'flair'
-                - 't1'
-                - 't1ce'
-                - 't2'
         Output:
-         - image: (240, 240, 155) MRI slices
-         - label: (240, 240, 155) Volumetric Segmentation labels
+         - image: (1, 4, 240, 240, 155) MRI Scan data
+         - label: (1, 1, 240, 240, 155) Volumetric Segmentation labels
         '''
         # Raise error if type is seg
         if type == 'seg':
@@ -41,18 +36,30 @@ class BratsDataset3D(Dataset):
         
         # Construct file paths for sample
         scan_folder = self.samples[idx]
-        image_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_{type}.nii')
-        seg_path = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_seg.nii')
+        flair_path  = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_flair.nii')
+        t1_path     = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1.nii')
+        t1ce_path   = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1ce.nii')
+        t2_path     = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t2.nii')
+        seg_path    = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_seg.nii')
 
         # Load data
-        image = nib.load(image_path).get_fdata()
-        label = nib.load(seg_path).get_fdata()
+        flair   = nib.load(flair_path).get_fdata()
+        t1      = nib.load(t1_path).get_fdata()
+        t1ce    = nib.load(t1ce_path).get_fdata()
+        t2      = nib.load(t2_path).get_fdata()
+        label   = nib.load(seg_path).get_fdata()
 
-        image_tensor = torch.tensor(image).float()
+        flair_tensor = torch.tensor(flair).float()
+        t1_tensor    = torch.tensor(t1).float()
+        t1ce_tensor  = torch.tensor(t1ce).float()
+        t2_tensor    = torch.tensor(t2).float()
         label_tensor = torch.tensor(label).float()
 
-        # normalize image information
-        image_tensor = image_tensor / image_tensor.max()
+        # Normalize Scan information
+        flair_norm = (flair_tensor - flair_tensor.min()) / (flair_tensor.max() - flair_tensor.min())
+        t1_norm = (t1_tensor - t1_tensor.min()) / (t1_tensor.max() - t1_tensor.min())
+        t1ce_norm = (t1ce_tensor - t1ce_tensor.min()) / (t1ce_tensor.max() - t1ce_tensor.min())
+        t2_norm = (t2_tensor - t2_tensor.min()) / (t2_tensor.max() - t2_tensor.min())
         
         # Correct label information
         label_tensor[label_tensor == 2] = 0
@@ -60,6 +67,8 @@ class BratsDataset3D(Dataset):
 
         if self.transform:
             sample = self.transform(sample)
+
+        image_tensor = torch.stack([flair_norm, t1_norm, t1ce_norm, t2_norm], dim=0)
 
         image_tensor = image_tensor.unsqueeze(0)
         label_tensor = label_tensor.unsqueeze(0)
