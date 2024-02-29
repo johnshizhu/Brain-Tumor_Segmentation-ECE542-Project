@@ -10,15 +10,15 @@ Create a model to accurately segment a brain tumor from an MRI.
 ## Outline
 This project includes an customizable implementation of UNet using pytorch as well as scripts/notebooks for training and analysis.
 Project
-    - experiments
-        - in progress
-    - scripts
-        - in progress
-    - unet
-        - layer.py: block level implementation
-        - model.py: architecture level implementation
-    - utils
-        - data_utils.py: Dataset classes and other data manipulation functions
+- experiments
+    - in progress
+- scripts
+    - in progress
+- unet
+    - layer.py: block level implementation
+    - model.py: architecture level implementation
+- utils
+    - data_utils.py: Dataset classes and other data manipulation functions
 
 ## Dependencies
 - pytorch
