@@ -30,11 +30,23 @@ class GeneralUNet(nn.Module):
 
     def forward(self, x):
         encoder_features, skip_connections = self.encoder_series(x)
+        print(f'Encoding Pass Complete')
         bottle_features = self.bottleneck(encoder_features)
+        print(f'Bottleneck Pass Complete')
         decoder_features = self.decoder_series(bottle_features, skip_connections)
+        print(f'Decoder Pass Complete')
         output_features = self.last_conv(decoder_features)
         return output_features
 
 class UNet3D(GeneralUNet):
-    def __init__(self, moreargs):
-        super(UNet3D, self).__init__()
+    def __init__(self, in_channels, conv_kernel_size, pool_kernel_size, up_kernel_size, dropout, conv_stride, conv_padding, size, complex):
+        super(UNet3D, self).__init__(in_channels=in_channels, 
+                                     conv_kernel_size=conv_kernel_size, 
+                                     pool_kernel_size=pool_kernel_size, 
+                                     up_kernel_size=up_kernel_size, 
+                                     dropout=dropout, 
+                                     conv_stride=conv_stride, 
+                                     conv_padding=conv_padding, 
+                                     conv3d=True, 
+                                     size=size, 
+                                     complex=complex)

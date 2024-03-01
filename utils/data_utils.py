@@ -70,7 +70,6 @@ class BratsDataset3D(Dataset):
 
         image_tensor = torch.stack([flair_norm, t1_norm, t1ce_norm, t2_norm], dim=0)
 
-        image_tensor = image_tensor.unsqueeze(0)
         label_tensor = label_tensor.unsqueeze(0)
 
         return image_tensor.float(), label_tensor.float()
