@@ -2,11 +2,12 @@ import os
 import torch
 import nibabel as nib
 import numpy as np
+from natsort import natsorted
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
 
 class BratsDataset3D(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, scan_type=None):
         '''
         Pytorch Dataset for full set of MRI data 
         Args:
@@ -15,8 +16,11 @@ class BratsDataset3D(Dataset):
         '''
         self.root_dir = root_dir
         self.transform = transform
+        self.scan_type = scan_type
         self.samples = [os.path.join(root_dir, o) for o in os.listdir(root_dir)
                         if os.path.isdir(os.path.join(root_dir, o))]
+        self.sorted_samples = natsorted(self.samples)
+
         
     def __len__(self):
         return len(self.samples)
@@ -35,7 +39,7 @@ class BratsDataset3D(Dataset):
             raise ValueError("Invalid value for 'type': 'seg' is reserved for segmentation labels file type")
         
         # Construct file paths for sample
-        scan_folder = self.samples[idx]
+        scan_folder = self.sorted_samples[idx]
         flair_path  = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_flair.nii')
         t1_path     = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1.nii')
         t1ce_path   = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1ce.nii')
@@ -67,8 +71,19 @@ class BratsDataset3D(Dataset):
 
         if self.transform:
             sample = self.transform(sample)
+        
+        scan_tensors_dict = {
+            'flair': flair_norm,
+            't1': t1_norm,
+            't1ce': t1ce_norm,
+            't2': t2_norm
+        }
 
-        image_tensor = torch.stack([flair_norm, t1_norm, t1ce_norm, t2_norm], dim=0)
+        if self.scan_type in scan_tensors_dict:
+            image_tensor = scan_tensors_dict[self.scan_type]
+            image_tensor = image_tensor.unsqueeze(0)
+        else:
+            image_tensor = torch.stack([flair_norm, t1_norm, t1ce_norm, t2_norm], dim=0)
 
         label_tensor = label_tensor.unsqueeze(0)
 
