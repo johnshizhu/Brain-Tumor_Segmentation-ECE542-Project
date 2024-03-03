@@ -7,15 +7,13 @@ from torch.utils.data import Dataset
 from torchvision.transforms import Compose
 
 class BratsDataset3D(Dataset):
-    def __init__(self, root_dir, transform=None, scan_type=None):
+    def __init__(self, root_dir, scan_type=None):
         '''
         Pytorch Dataset for full set of MRI data 
         Args:
             root_dir (string): Directory with folder containing training data
-            transform (callable, optional): Optional transform to apply on a sample
         '''
         self.root_dir = root_dir
-        self.transform = transform
         self.scan_type = scan_type
         self.samples = [os.path.join(root_dir, o) for o in os.listdir(root_dir)
                         if os.path.isdir(os.path.join(root_dir, o))]
@@ -68,9 +66,6 @@ class BratsDataset3D(Dataset):
         # Correct label information
         label_tensor[label_tensor == 2] = 0
         label_tensor[label_tensor == 4] = 1
-
-        if self.transform:
-            sample = self.transform(sample)
         
         scan_tensors_dict = {
             'flair': flair_norm,
@@ -108,7 +103,6 @@ class BratsDataset2D(Dataset):
         Pytorch Dataset for single slice MRI images
         Args:
             root_dir (string): Directory with folder containing training data
-            transform (callable, optional): Optional transform to apply on a sample
         '''
         self.root_dir = root_dir
         self.samples = None # FIXHERE should be file paths fro each individual image
