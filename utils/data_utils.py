@@ -97,6 +97,17 @@ class BratsDataset3D(Dataset):
                     modified_seg_img = nib.Nifti1Image(modified_seg_data, seg_img.affine, seg_img.header)
                     nib.save(modified_seg_img, mod_seg_path)
     
+    def create_overlay(self, scan, correct_overlay, incorrect_overlay):
+
+        # Convert from float to uint8
+        scan = (scan * 255).astype(np.uint8) 
+        # Repeat the grayscale value across the 3 RGB channels        
+        overlay = np.repeat(scan[:, :, np.newaxis], 3, axis=2)
+        overlay[correct_overlay] = [0,255, 0]
+        overlay[incorrect_overlay] = [255, 0, 0]
+
+        return overlay
+    
 class BratsDataset2D(Dataset):
     def __init__(self, root_dir):
         '''
