@@ -27,12 +27,14 @@ class GeneralUNet(nn.Module):
             self.last_conv = nn.Conv3d(in_channels=complex, out_channels=1, kernel_size=1, stride=1, padding=0)
         else:
             self.last_conv = nn.Conv2d(in_channels=complex, out_channels=1, kernel_size=1, stride=1, padding=0)
+        self.last_sig  = nn.Sigmoid()
 
     def forward(self, x):
         encoder_features, skip_connections = self.encoder_series(x)
         bottle_features = self.bottleneck(encoder_features)
         decoder_features = self.decoder_series(bottle_features, skip_connections)
-        output_features = self.last_conv(decoder_features)
+        final_conv_features = self.last_conv(decoder_features)
+        output_features = self.last_sig(final_conv_features)
         return output_features
 
 class UNet3D(GeneralUNet):
