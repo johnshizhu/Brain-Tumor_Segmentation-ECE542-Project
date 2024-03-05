@@ -30,11 +30,8 @@ class GeneralUNet(nn.Module):
 
     def forward(self, x):
         encoder_features, skip_connections = self.encoder_series(x)
-        print(f'Encoding Pass Complete')
         bottle_features = self.bottleneck(encoder_features)
-        print(f'Bottleneck Pass Complete')
         decoder_features = self.decoder_series(bottle_features, skip_connections)
-        print(f'Decoder Pass Complete')
         output_features = self.last_conv(decoder_features)
         return output_features
 
