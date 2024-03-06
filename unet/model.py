@@ -49,3 +49,16 @@ class UNet3D(GeneralUNet):
                                      conv3d=True, 
                                      size=size, 
                                      complex=complex)
+
+class UNet2D(GeneralUNet):
+    def __init__(self, in_channels, size, complex, conv_kernel_size=3, pool_kernel_size=2, up_kernel_size=2, dropout=0.1, conv_stride=1, conv_padding=1):
+        super(UNet2D, self).__init__(in_channels=in_channels, 
+                                     conv_kernel_size=conv_kernel_size, 
+                                     pool_kernel_size=pool_kernel_size, 
+                                     up_kernel_size=up_kernel_size, 
+                                     dropout=dropout, 
+                                     conv_stride=conv_stride, 
+                                     conv_padding=conv_padding, 
+                                     conv3d=False, 
+                                     size=size, 
+                                     complex=complex)
