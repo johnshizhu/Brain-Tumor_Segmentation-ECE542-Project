@@ -1,42 +1,46 @@
 import sys
 sys.path.insert(0, '../')
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import nibabel as nib
 from torch.utils.data import DataLoader, TensorDataset
-from unet.model import GeneralUNet
+from unet.model import GeneralUNet, UNet3D
 from utils.data_utils import BratsDataset3D
 import numpy as np
 
+'''
+Training Loop Script
+
+Trains a 3DUnet using the default channel and scaling settings in this library
+
+arg0 = number of epochs (int)
+arg1 = batch size (int)
+arg2 = learning rate (float)
+arg3 = directory of data (file path)
+arg4 = number of in_channels (int)
+arg5 = size: depth of unet(depth) (int)
+arg6 = complex: inital value to scale to (int)
+'''
+
 ### PARAMETERS
-num_epochs = 10
-lr = 0.001
-batch_size = 5
+num_epochs = sys.argv[0]
+batch_size = sys.argv[1]
+lr         = sys.argv[2]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-train_dir = r'C:\Users\johns\OneDrive\Desktop\Datasets\ECE-542\brain-tumor-segmentation(nii)\BraTS2020_TrainingData\MICCAI_BraTS2020_TrainingData'
+train_dir  = sys.argv[3]
 
 train_dataset = BratsDataset3D(train_dir)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-# Model setup
-model = GeneralUNet(in_channels=1,  # Adjust based on your dataset's specifics
-                    conv_kernel_size=3,
-                    pool_kernel_size=2,
-                    up_kernel_size=2,
-                    dropout=0.1,
-                    conv_stride=1,
-                    conv_padding=1,
-                    conv3d=True,
-                    size=2,  # Adjust the number of layers in the UNet
-                    complex=4)  # Adjust the complexity or number of initial features
-
+# Model setup 3D Unet using defaults
+model = UNet3D(in_channels  = sys.argv[4], 
+               size         = sys.argv[5], 
+               complex      = sys.argv[6])  
 
 # Loss and optimizer
 criterion = nn.BCEWithLogitsLoss() 
 optimizer = optim.Adam(model.parameters(), lr=lr)
-
 
 model = model.to(device)
 
@@ -52,13 +56,10 @@ for epoch in range(num_epochs):
 
         # Forward pass
         outputs = model(images)
-        print(f'forward pass complete')
         loss = criterion(outputs, labels)
-        print(f'loss is: {loss}')
 
         # Backward and optimize
         optimizer.zero_grad()
-        print(f'backprop')
         loss.backward()
         optimizer.step()
 

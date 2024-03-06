@@ -4,7 +4,12 @@ import torch.nn.functional as F
 
 def addBlock(sequence, in_channels, out_channels, kernel_size, dropout=0.0, stride=1, padding=0, conv3d=True):
     '''
-    Adds a block to a neural network sequence based on a given configuration.
+    Creates a block(sequence of layers) based on string sequence.
+        Possble layers:
+        c --> convolution
+        b --> batchnorm
+        r --> relu
+        d --> dropout
     
     Args:
         sequence (str): A string sequence consisting of 'c' (convolution), 'b' (batch normalization), 
