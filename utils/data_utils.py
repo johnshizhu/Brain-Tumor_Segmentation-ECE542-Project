@@ -64,6 +64,10 @@ class BratsDataset3D(Dataset):
         t2_norm = (t2_tensor - t2_tensor.min()) / (t2_tensor.max() - t2_tensor.min())
         
         # Correct label information
+        # 0 --> None
+        # 1 --> Necrotic / Noneenhancing Tumor
+        # 2 --> Peritumoral Edema
+        # 4 --> GD-Enhancing Tumor
         label_tensor[label_tensor == 2] = 0
         label_tensor[label_tensor == 4] = 1
         
@@ -107,6 +111,55 @@ class BratsDataset3D(Dataset):
         overlay[incorrect_overlay] = [255, 0, 0]
 
         return overlay
+    
+    def get_raw_data(self, idx):
+                # Raise error if type is seg
+        if type == 'seg':
+            raise ValueError("Invalid value for 'type': 'seg' is reserved for segmentation labels file type")
+        
+        # Construct file paths for sample
+        scan_folder = self.sorted_samples[idx]
+        flair_path  = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_flair.nii')
+        t1_path     = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1.nii')
+        t1ce_path   = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t1ce.nii')
+        t2_path     = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_t2.nii')
+        seg_path    = os.path.join(scan_folder, f'BraTS20_Training_{idx+1:03d}_seg.nii')
+
+        # Load data
+        flair   = nib.load(flair_path).get_fdata()
+        t1      = nib.load(t1_path).get_fdata()
+        t1ce    = nib.load(t1ce_path).get_fdata()
+        t2      = nib.load(t2_path).get_fdata()
+        label   = nib.load(seg_path).get_fdata()
+
+        flair_tensor = torch.tensor(flair).float()
+        t1_tensor    = torch.tensor(t1).float()
+        t1ce_tensor  = torch.tensor(t1ce).float()
+        t2_tensor    = torch.tensor(t2).float()
+        label_tensor = torch.tensor(label).float()
+
+        # Normalize Scan information
+        flair_norm = (flair_tensor - flair_tensor.min()) / (flair_tensor.max() - flair_tensor.min())
+        t1_norm = (t1_tensor - t1_tensor.min()) / (t1_tensor.max() - t1_tensor.min())
+        t1ce_norm = (t1ce_tensor - t1ce_tensor.min()) / (t1ce_tensor.max() - t1ce_tensor.min())
+        t2_norm = (t2_tensor - t2_tensor.min()) / (t2_tensor.max() - t2_tensor.min())
+        
+        scan_tensors_dict = {
+            'flair': flair_norm,
+            't1': t1_norm,
+            't1ce': t1ce_norm,
+            't2': t2_norm
+        }
+
+        if self.scan_type in scan_tensors_dict:
+            image_tensor = scan_tensors_dict[self.scan_type]
+            image_tensor = image_tensor.unsqueeze(0)
+        else:
+            image_tensor = torch.stack([flair_norm, t1_norm, t1ce_norm, t2_norm], dim=0)
+
+        label_tensor = label_tensor.unsqueeze(0)
+
+        return image_tensor.float(), label_tensor.float()
     
 class BratsDataset2D(Dataset):
     def __init__(self, root_dir):
