@@ -2,16 +2,16 @@
 
 This project is in progress
 
-## Goals
-Create a model to accurately segment a brain tumor from an MRI.
-- Experiment with varying Computer Vision Architectures, namely UNet (3D and 2D)
-- Create a generalizable system to takes in varying image resolution inputs, while retaining prediction quality.
+## Overview
+Create a ML models to accurately segment a brain tumor from an MRI.
+- This projects uses the UNet architecture modified with 3D convolutions, MaxPool, etc. to achieve Volumentric Segmentation
 
-## Outline
+## Repo Outline
 This project includes an customizable implementation of UNet using pytorch as well as scripts/notebooks for training and analysis.
 Project
 - experiments
-    - in progress
+    - train_mri_3d.ipynb: Notebook for training 3d model from a given dataset.
+    - eval_mode.ipynb: Notebook for visuzlizing and evaluating a model.
 - scripts
     - in progress
 - unet
@@ -19,6 +19,7 @@ Project
     - model.py: architecture level implementation
 - utils
     - data_utils.py: Dataset classes and other data manipulation functions
+    - 
 
 ## Dependencies
 - pytorch
