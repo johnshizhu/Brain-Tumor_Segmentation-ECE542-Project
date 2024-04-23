@@ -175,8 +175,20 @@ class BratsDataset2D(Dataset):
             return len(self.samples)
         
         def __getitem__(self):
-            ### FIX THIS
+            ### FIX TO DO
             image = None
             label = None
             
             return image, label
+        
+def calculate_dice_score(prediction, label):
+    intersection = np.sum(prediction * label)
+    union = np.sum(prediction) + np.sum(label)
+    dice_score = (2 * intersection) / (union + 1e-8)  # Add a small constant to avoid division by zero
+    return dice_score
+
+def calculate_iou_score(prediction, label):
+    intersection = np.sum(prediction * label)
+    union = np.sum(prediction) + np.sum(label) - intersection
+    iou_score = (intersection + 1e-8) / (union + 1e-8)  # Add a small constant to avoid division by zero
+    return iou_score

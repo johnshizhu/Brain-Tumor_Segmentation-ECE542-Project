@@ -9,7 +9,7 @@ from unet.model import GeneralUNet
 from utils.data_utils import BratsDataset3D
 from utils.predict import ModelPredict
 import SimpleITK as hh 
-import utils.Eval_mri as em
+import utils.eval_mri as em
 import seaborn as sns
 
 
