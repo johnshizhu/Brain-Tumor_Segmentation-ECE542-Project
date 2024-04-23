@@ -1,25 +1,17 @@
-# Brain Tumor Segmentation ECE542-Project
+# Brain Tumor Segmentation
 
-This project is in progress
 
 ## Overview
-Create a ML models to accurately segment a brain tumor from an MRI.
-- This projects uses the UNet architecture modified with 3D convolutions, MaxPool, etc. to achieve Volumentric Segmentation
+This project aims to use machine learning, specifically a 3D-UNet model architecture to segment tumor voxels from multi-channel brain MRI scans. We have trained on the BraTS 2020 dataset to achieve up to .68 DICE score.
+
+Poster Here: https://docs.google.com/presentation/d/12BBitsrQwW3HkAOmUD70cyRfZwlBrsi34cn1EqFoxxQ/edit#slide=id.p1 <br>
 
 ## Repo Outline
 This project includes an customizable implementation of UNet using pytorch as well as scripts/notebooks for training and analysis.
-Project
-- experiments
-    - train_mri_3d.ipynb: Notebook for training 3d model from a given dataset.
-    - eval_mode.ipynb: Notebook for visuzlizing and evaluating a model.
-- scripts
-    - in progress
-- unet
-    - layer.py: block level implementation
-    - model.py: architecture level implementation
-- utils
-    - data_utils.py: Dataset classes and other data manipulation functions
-    - 
+- experiments: Notebooks for visualization and training
+- scripts: Python scripts for training and model evaluation
+- unet: Layer level and architecture level 3D UNet implementation
+- utils: Utility and other functions
 
 ## Dependencies
 - pytorch
@@ -28,7 +20,7 @@ Project
 - nibabel
 
 ## Dataset Citations
-Many thanks to the University of Pennsylvania Perelman School of Medicine for making this data public.
+Thanks to the University of Pennsylvania Perelman School of Medicine for making this data public.
 
 [1] B. H. Menze, A. Jakab, S. Bauer, J. Kalpathy-Cramer, K. Farahani, J. Kirby, et al. "The Multimodal Brain Tumor Image Segmentation Benchmark (BRATS)", IEEE Transactions on Medical Imaging 34(10), 1993-2024 (2015) DOI: 10.1109/TMI.2014.2377694 (opens in a new window)
 
